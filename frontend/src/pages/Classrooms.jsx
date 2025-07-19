@@ -1,13 +1,32 @@
-import React from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "../services/supabaseClient";
+import { useAuth } from "../context/AuthContext";
+
 import { SiGoogleclassroom } from "react-icons/si";
 import { FaPlus } from "react-icons/fa";
 import Button from "../components/Button";
-const classrooms = [
-  { id: 1, name: "Grade 10 - A" },
-  { id: 2, name: "Grade 11 - B" },
-];
+
 const Classrooms = () => {
+  const { loading, user } = useAuth();
+
+  const [classrooms, setClassrooms] = useState([]);
+
+  useEffect(() => {
+    const fetchClassrooms = async () => {
+      const { data, error } = await supabase
+        .from("classrooms")
+        .select("*")
+        .eq("owner", user.id);
+
+      if (data) {
+        console.log("Fetched classrooms:", data);
+        setClassrooms(data);
+      }
+    };
+    fetchClassrooms();
+  }, []);
+
   return (
     <div className="container mx-auto p-3 h-auto flex flex-col gap-2 w-full max-w-md">
       {/* ADD NEW CLASSROOM */}
@@ -17,20 +36,20 @@ const Classrooms = () => {
         </span>
       </Button>
       <div className="mt-4">
-        <ClassroomList />
+        <ClassroomList classrooms={classrooms} />
       </div>
     </div>
   );
 };
 
-const ClassroomList = () => {
+const ClassroomList = ({ classrooms }) => {
   return (
     <>
       {classrooms.length > 0 ? (
         <ul className="space-y-4">
           {classrooms.map((classroom) => (
             <li key={classroom.id}>
-              <Classroom path={`/classroom/${classroom.id}`}>
+              <Classroom path={`/classrooms/${classroom.id}`}>
                 <span className="flex items-center justify-center text-4xl gap-2">
                   {classroom.name} <SiGoogleclassroom />
                 </span>
