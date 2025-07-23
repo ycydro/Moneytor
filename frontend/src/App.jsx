@@ -9,6 +9,8 @@ import ClassroomDetail from "./pages/ClassroomDetail";
 import "./App.css";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import StudentDetail from "./pages/StudentDetail";
+import TreasurerHistory from "./pages/TreasurerHistory";
 
 function App() {
   return (
@@ -34,6 +36,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <ClassroomDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/classrooms/:cid/student/:id"
+            element={
+              <ProtectedRoute>
+                <StudentDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/classrooms/:cid/treasurer-history/:id"
+            element={
+              <ProtectedRoute>
+                <TreasurerHistory />
               </ProtectedRoute>
             }
           />

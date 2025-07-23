@@ -6,7 +6,7 @@ import { FaArrowLeft } from "react-icons/fa";
 import { FaTrashAlt } from "react-icons/fa";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 
-const StudentDetail = () => {
+const TreasurerHistory = () => {
   const location = useLocation();
   const { isOwner } = location.state || {};
   const navigate = useNavigate();
@@ -14,13 +14,12 @@ const StudentDetail = () => {
   const [transactions, setTransactions] = useState([]);
   const [student, setStudent] = useState({});
 
-  const fetchTransactionsByStudent = async () => {
+  const fetchTransactionsByTreasuer = async () => {
     try {
       const { data, error } = await supabase
-        .from("students")
+        .from("users")
         .select("*")
         .eq("id", id)
-        .eq("classroom_id", cid)
         .single();
 
       if (error) throw error;
@@ -29,19 +28,20 @@ const StudentDetail = () => {
       console.error("Error to fetch student:", error);
       alert("Failed to load student data");
     }
+
     try {
       const { data, error } = await supabase
         .from("transactions")
         .select("*")
-        .eq("student_id", id)
+        .eq("treasurer_id", id)
         .eq("classroom_id", cid)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       setTransactions(data);
     } catch (error) {
-      console.error("Error fetching students:", error);
-      alert("Failed to load student data");
+      console.error("Error fetching transactions:", error);
+      alert("Failed to load transactions data");
     }
   };
 
@@ -55,7 +55,7 @@ const StudentDetail = () => {
         .eq("id", tid);
 
       if (error) throw error;
-      fetchTransactionsByStudent();
+      fetchTransactionsByTreasuer();
     } catch (error) {
       console.error("Error fetching students:", error);
       alert("Failed to load student data");
@@ -63,7 +63,7 @@ const StudentDetail = () => {
   };
 
   useEffect(() => {
-    fetchTransactionsByStudent();
+    fetchTransactionsByTreasuer();
   }, []);
 
   return (
@@ -96,6 +96,9 @@ const StudentDetail = () => {
                   </th>
                   <th className="py-3 px-2 sm:px-4 font-medium text-center whitespace-nowrap">
                     Date
+                  </th>
+                  <th className="py-3 px-2 sm:px-4 font-medium text-center">
+                    Notes
                   </th>
                   {isOwner && (
                     <th className="py-3 px-2 sm:px-4 font-medium text-center">
@@ -140,6 +143,9 @@ const StudentDetail = () => {
                       <td className="py-3 px-2 sm:px-4 text-xs text-gray-500 text-center whitespace-nowrap">
                         {dayjs(transaction.created_at).format("MMM DD, YYYY")}
                       </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs text-gray-500 text-center whitespace-nowrap">
+                        {transaction.note}
+                      </td>
                       {isOwner && (
                         <td className="py-3 px-2 sm:px-4 text-gray-500 text-center whitespace-nowrap">
                           <Button
@@ -154,7 +160,7 @@ const StudentDetail = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="text-center py-6 text-gray-500">
+                    <td colSpan="5" className="text-center py-6 text-gray-500">
                       No transactions found
                     </td>
                   </tr>
@@ -168,4 +174,4 @@ const StudentDetail = () => {
   );
 };
 
-export default StudentDetail;
+export default TreasurerHistory;
