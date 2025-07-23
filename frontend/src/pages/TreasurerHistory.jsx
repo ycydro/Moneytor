@@ -50,7 +50,7 @@ const TreasurerHistory = () => {
       const { data, error } = await supabase
         .from("transactions")
         .delete()
-        .eq("student_id", id)
+        .eq("treasurer_id", id)
         .eq("classroom_id", cid)
         .eq("id", tid);
 

@@ -31,29 +31,14 @@ function App() {
             }
           />
 
-          <Route
-            path="/classrooms/:id"
-            element={
-              <ProtectedRoute>
-                <ClassroomDetail />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/classrooms/:id" element={<ClassroomDetail />} />
           <Route
             path="/classrooms/:cid/student/:id"
-            element={
-              <ProtectedRoute>
-                <StudentDetail />
-              </ProtectedRoute>
-            }
+            element={<StudentDetail />}
           />
           <Route
             path="/classrooms/:cid/treasurer-history/:id"
-            element={
-              <ProtectedRoute>
-                <TreasurerHistory />
-              </ProtectedRoute>
-            }
+            element={<TreasurerHistory />}
           />
         </Routes>
       </main>

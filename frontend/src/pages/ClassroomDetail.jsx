@@ -13,6 +13,7 @@ import { HiMagnifyingGlass } from "react-icons/hi2";
 import { TiUserAdd } from "react-icons/ti";
 import { RxAvatar } from "react-icons/rx";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { PiHandDeposit } from "react-icons/pi";
 import { BiMoneyWithdraw } from "react-icons/bi";
 import { IoClose } from "react-icons/io5";
 
@@ -27,10 +28,12 @@ const ClassroomDetail = () => {
   const [isCalculating, setIsCalculating] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [classroom, setClassroom] = useState({});
   const [transactions, setTransactions] = useState([]);
+  const [transactionType, setTransactionType] = useState("");
 
   const [openAddStudentModal, setOpenAddStudentModal] = useState(false);
-  const [openWithdrawModal, setOpenWithdrawModal] = useState(false);
+  const [openTransactionModal, setOpenTransactionModal] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -69,30 +72,29 @@ const ClassroomDetail = () => {
 
   // Fetch classroom ownership and transactions once
   useEffect(() => {
-    if (!loading && user) {
-      const fetchInitialData = async () => {
-        setIsLoading(true);
-        try {
-          // Check ownership
-          const { data: classroomData } = await supabase
-            .from("classrooms")
-            .select("*")
-            .eq("id", id)
-            .eq("owner", user?.id)
-            .single();
-          setIsOwner(!!classroomData);
+    const fetchInitialData = async () => {
+      setIsLoading(true);
+      try {
+        const { data: classroomData } = await supabase
+          .from("classrooms")
+          .select("*")
+          .eq("id", id)
+          .single();
 
-          // Load transactions once
-          await fetchTransactions();
-        } catch (error) {
-          console.error("Error fetching initial data:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchInitialData();
-    }
-  }, [id, loading, user]);
+        // Check if current user is the owner
+        setIsOwner(classroomData?.owner === user?.id || false);
+        setClassroom(classroomData);
+
+        // Load transactions once
+        await fetchTransactions();
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchInitialData();
+  }, [id]);
 
   const fetchStudents = async () => {
     setIsLoading(true);
@@ -198,9 +200,16 @@ const ClassroomDetail = () => {
     await fetchStudents(); // This will update student funds
   };
 
+  const handleFundsModal = (type) => {
+    setTransactionType(type);
+    setOpenTransactionModal(true);
+  };
+
   return (
     <div className="p-4 flex flex-col items-center justify-start min-h-screen gap-5">
-      <h1 className="text-1xl font-bold text-gray-800">CLASSROOM {id}</h1>
+      <h1 className="text-1xl font-bold text-gray-800">
+        CLASSROOM {classroom?.name?.toUpperCase()}
+      </h1>
       <Card className="w-full max-w-md flex flex-col items-center justify-center gap-5">
         <div className="flex items-center justify-center text-center gap-2">
           <h3 className="text-2xl font-semibold text-gray-700">Total Funds</h3>
@@ -216,17 +225,17 @@ const ClassroomDetail = () => {
         {isOwner && (
           <div className="space-y-2.5">
             <Button
-              onClick={() => setOpenWithdrawModal(true)}
+              onClick={() => handleFundsModal("Deposit")}
               color=""
               className="w-full px-4 py-2 text-gray-900 bg-amber-400 rounded-4xl"
             >
               <span className="flex items-center justify-center gap-2">
-                <BiMoneyWithdraw className="text-xl" />
+                <PiHandDeposit className="text-xl" />
                 Deposit Funds
               </span>
             </Button>
             <Button
-              onClick={() => setOpenWithdrawModal(true)}
+              onClick={() => handleFundsModal("Withdraw")}
               color=""
               className="w-full px-4 py-2 text-gray-900 bg-amber-400 rounded-4xl"
             >
@@ -235,21 +244,21 @@ const ClassroomDetail = () => {
                 Withdraw Funds
               </span>
             </Button>
-            <Button
-              color=""
-              className="w-full hover:underline"
-              onClick={() =>
-                navigate(`/classrooms/${id}/treasurer-history/${user.id}`, {
-                  state: { isOwner },
-                })
-              }
-            >
-              <span className="flex items-center justify-center gap-2 text-md">
-                <BsClockHistory /> View Funds History
-              </span>
-            </Button>
           </div>
         )}
+        <Button
+          color=""
+          className="w-full hover:underline"
+          onClick={() =>
+            navigate(`/classrooms/${id}/treasurer-history/${classroom.owner}`, {
+              state: { isOwner },
+            })
+          }
+        >
+          <span className="flex items-center justify-center gap-2 text-md">
+            <BsClockHistory /> View Funds History
+          </span>
+        </Button>
       </Card>
 
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-md">
@@ -316,12 +325,13 @@ const ClassroomDetail = () => {
           </Button>
         </div>
       )}
-      <WithdrawFundsModal
-        open={openWithdrawModal}
+      <TransactionModal
+        open={openTransactionModal}
+        transactionType={transactionType}
         user={user}
-        onClose={() => setOpenWithdrawModal(false)}
+        onClose={() => setOpenTransactionModal(false)}
         classroomId={id}
-        onWithdraw={fetchTransactions}
+        onTransaction={fetchTransactions}
       />
       <AddStudentModal
         open={openAddStudentModal}
@@ -533,12 +543,13 @@ const StudentCard = ({ student, isOwner, onRefresh }) => {
   );
 };
 
-const WithdrawFundsModal = ({
+const TransactionModal = ({
   open,
+  transactionType,
   user,
   onClose,
   classroomId,
-  onWithdraw,
+  onTransaction,
 }) => {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -562,7 +573,10 @@ const WithdrawFundsModal = ({
         .from("transactions")
         .insert([
           {
-            type: "withdraw",
+            // lowercase the type
+            type:
+              transactionType.split(" ")[0].charAt(0).toLowerCase() +
+              transactionType.split(" ")[0].slice(1).toLowerCase(),
             amount,
             student_id: null,
             treasurer_id: user.id,
@@ -578,7 +592,7 @@ const WithdrawFundsModal = ({
       setAmount("");
 
       handleClose();
-      onWithdraw(); // Refresh the transaction
+      onTransaction(); // Refresh the transaction
     } catch (err) {
       console.error("Error withdrawing:", err);
       setError(err.message || "Failed to withdraw");
@@ -610,7 +624,7 @@ const WithdrawFundsModal = ({
         {/* Modal header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-semibold text-gray-900">
-            Withdraw Funds
+            {transactionType} Funds
           </h3>
           <button
             onClick={handleClose}
@@ -632,7 +646,7 @@ const WithdrawFundsModal = ({
               htmlFor="amount"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Amount to Withdraw
+              Amount to {transactionType}
             </label>
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
@@ -659,7 +673,7 @@ const WithdrawFundsModal = ({
                 }
                 className="whitespace-nowrap !text-gray-900 !bg-amber-400 hover:!bg-amber-600"
               >
-                -5
+                {transactionType === "Deposit" ? "+" : "-"}5
               </Button>
               <Button
                 onClick={() =>
@@ -667,7 +681,7 @@ const WithdrawFundsModal = ({
                 }
                 className="whitespace-nowrap !text-gray-900 !bg-amber-400 hover:!bg-amber-600"
               >
-                -10
+                {transactionType === "Deposit" ? "+" : "-"}10
               </Button>
             </div>
           </div>
@@ -728,10 +742,10 @@ const WithdrawFundsModal = ({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Withdrawing...
+                  {transactionType}ing...
                 </span>
               ) : (
-                "Withdraw"
+                "Confirm"
               )}
             </Button>
           </div>
